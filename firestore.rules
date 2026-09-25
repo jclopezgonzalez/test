@@ -1,0 +1,153 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================================
+    // GLOBAL DEFAULT DENY (MASTER GATE)
+    // ========================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ========================================================
+    // SECURITY PRIMITIVES & HELPERS
+    // ========================================================
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'multicreativo@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ========================================================
+    // VALIDATION BLUEPRINTS
+    // ========================================================
+
+    function isValidTestConnection(data) {
+      return data.keys().hasAll(['status']) &&
+        data.status is string && data.status.size() <= 64;
+    }
+
+    function isValidAdminDoc(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+        data.email is string && data.email.size() <= 120 &&
+        data.role in ['superadmin', 'arzobispo', 'canciller', 'admin', 'auditor'];
+    }
+
+    function isValidCertificateRequest(data) {
+      return data.keys().hasAll(['requestCode', 'certificateType', 'fullName', 'idNumber', 'parishName', 'applicantEmail', 'status', 'userId']) &&
+        data.requestCode is string && data.requestCode.size() <= 64 &&
+        data.certificateType in ['bautismo', 'confirmacion', 'matrimonio'] &&
+        data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 150 &&
+        data.idNumber is string && data.idNumber.size() > 0 && data.idNumber.size() <= 30 &&
+        data.parishName is string && data.parishName.size() > 0 && data.parishName.size() <= 150 &&
+        data.applicantEmail is string && data.applicantEmail.size() > 0 && data.applicantEmail.size() <= 100 &&
+        data.status in ['pendiente', 'en_proceso', 'listo', 'entregado'] &&
+        data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll(['portalSource', 'name', 'email', 'subject', 'message', 'read']) &&
+        data.portalSource is string && data.portalSource.size() <= 60 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.email is string && data.email.size() > 0 && data.email.size() <= 100 &&
+        data.subject is string && data.subject.size() > 0 && data.subject.size() <= 150 &&
+        data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
+        data.read is bool;
+    }
+
+    function isValidCourseEnrollment(data) {
+      return data.keys().hasAll(['courseId', 'courseTitle', 'fullName', 'email', 'phone', 'parishName', 'preferredModality', 'status', 'userId']) &&
+        data.courseId is string && data.courseId.size() <= 100 &&
+        data.courseTitle is string && data.courseTitle.size() <= 200 &&
+        data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 150 &&
+        data.email is string && data.email.size() > 0 && data.email.size() <= 100 &&
+        data.phone is string && data.phone.size() <= 30 &&
+        data.parishName is string && data.parishName.size() <= 150 &&
+        data.preferredModality in ['presencial', 'virtual'] &&
+        data.status in ['recibida', 'confirmada', 'en_curso', 'completada'] &&
+        data.userId is string && data.userId.size() <= 128;
+    }
+
+    // ========================================================
+    // COLLECTION MATCH RULES
+    // ========================================================
+
+    // 1. Conectividad / Diagnóstico de Firebase
+    match /test/{testId} {
+      allow get: if isValidId(testId);
+      allow list: if isAdmin();
+      allow write: if isAdmin() && isValidTestConnection(incoming());
+    }
+
+    // 2. Administradores Canónicos
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isAdmin() || isOwner(adminId));
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(adminId) && isValidAdminDoc(incoming());
+    }
+
+    // 3. Solicitudes Sacramentales
+    match /certificateRequests/{requestId} {
+      allow get: if isValidId(requestId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isValidId(requestId) && isSignedIn() &&
+                    incoming().userId == request.auth.uid &&
+                    isValidCertificateRequest(incoming());
+      allow update: if isValidId(requestId) && isValidCertificateRequest(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    (
+                      isAdmin() ||
+                      (isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['applicantPhone', 'applicantEmail', 'notes']))
+                    );
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    // 4. Buzón de Correspondencia Institucional
+    match /contactMessages/{messageId} {
+      allow get: if isValidId(messageId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(messageId) && isValidContactMessage(incoming());
+      allow update: if isValidId(messageId) && isAdmin() &&
+                    isValidContactMessage(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+
+    // 5. Inscripciones Académicas y Pastorales
+    match /courseEnrollments/{enrollmentId} {
+      allow get: if isValidId(enrollmentId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isValidId(enrollmentId) && isSignedIn() &&
+                    incoming().userId == request.auth.uid &&
+                    isValidCourseEnrollment(incoming());
+      allow update: if isValidId(enrollmentId) && isValidCourseEnrollment(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    (
+                      isAdmin() ||
+                      (isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['preferredModality', 'phone', 'notes']))
+                    );
+      allow delete: if isValidId(enrollmentId) && isAdmin();
+    }
+  }
+}

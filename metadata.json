@@ -1,0 +1,6 @@
+{
+  "name": "Arquidiócesis de Santo Domingo",
+  "description": "Red de 6 portales web eclesiales y multimedios con Forensic Audit & Reality Matrix 360° (Prompt 69), AI Audit Copilot & Autopilot Guide 360° (Prompt 68), Master Audit & Reengineering Engine 360° (Prompt 67), Ecosystem OS Core 360° (Prompt 65), People, Roles & Permisos 360° (Prompt 64), WordPress Migration 360° (Prompt 63), Production Ready OS (Prompt 62), Template Builder 360° (Prompt 61), Obispos 360° (Prompt 57), Backend OS & 20 Áreas Maestras (Prompt 54), Gestión Humana 360° (Prompt 53), Responsive OS (Prompt 50), Staff Portal (Prompt 49), Menu Governance (Prompt 48), People 360° (Prompt 47), Arquitectura 13 Capas (Prompt 46), RSS 2.0/OPML, QA, iPaaS, CRM, BPM, GRC y ERP Canónico.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

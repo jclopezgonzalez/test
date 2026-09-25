@@ -1,0 +1,222 @@
+{
+  "entities": {
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Documento para validación de conectividad a Firestore",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Estado de conectividad"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Fecha y hora del test"
+        }
+      },
+      "required": ["status"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Identificador de administradores con permisos de gestión eclesiástica",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Correo del administrador"
+        },
+        "role": {
+          "type": "string",
+          "description": "Rol canónico o administrativo",
+          "enum": ["superadmin", "arzobispo", "canciller", "admin", "auditor"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de registro"
+        }
+      },
+      "required": ["email", "role"]
+    },
+    "CertificateRequest": {
+      "title": "CertificateRequest",
+      "description": "Solicitud de certificado sacramental (bautismo, confirmación, matrimonio)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador de la solicitud"
+        },
+        "requestCode": {
+          "type": "string",
+          "description": "Código de seguimiento canónico"
+        },
+        "certificateType": {
+          "type": "string",
+          "description": "Tipo de certificado sacramental",
+          "enum": ["bautismo", "confirmacion", "matrimonio"]
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Nombre completo del solicitante",
+          "maxLength": 150
+        },
+        "idNumber": {
+          "type": "string",
+          "description": "Cédula o pasaporte",
+          "maxLength": 30
+        },
+        "dateOfSacrament": {
+          "type": "string",
+          "description": "Fecha estimada del sacramento"
+        },
+        "parishName": {
+          "type": "string",
+          "description": "Parroquia donde se administró el sacramento",
+          "maxLength": 150
+        },
+        "applicantEmail": {
+          "type": "string",
+          "description": "Correo electrónico de contacto",
+          "maxLength": 100
+        },
+        "applicantPhone": {
+          "type": "string",
+          "description": "Teléfono de contacto",
+          "maxLength": 30
+        },
+        "status": {
+          "type": "string",
+          "description": "Estado canónico del trámite",
+          "enum": ["pendiente", "en_proceso", "listo", "entregado"]
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID de Firebase Auth del usuario solicitante"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha ISO de creación"
+        }
+      },
+      "required": ["requestCode", "certificateType", "fullName", "idNumber", "parishName", "applicantEmail", "status", "userId"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Mensaje de contacto recibido a través de los portales eclesiales",
+      "type": "object",
+      "properties": {
+        "portalSource": {
+          "type": "string",
+          "description": "Portal eclesial de origen"
+        },
+        "name": {
+          "type": "string",
+          "description": "Nombre del remitente",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo de contacto del remitente",
+          "maxLength": 100
+        },
+        "subject": {
+          "type": "string",
+          "description": "Asunto del mensaje",
+          "maxLength": 150
+        },
+        "message": {
+          "type": "string",
+          "description": "Cuerpo del mensaje",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha ISO del mensaje"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Marca de lectura por cancillería o prensa"
+        }
+      },
+      "required": ["portalSource", "name", "email", "subject", "message", "read"]
+    },
+    "CourseEnrollment": {
+      "title": "CourseEnrollment",
+      "description": "Inscripción en curso, taller o diplomado de pastoral o teología",
+      "type": "object",
+      "properties": {
+        "courseId": {
+          "type": "string",
+          "description": "ID del curso",
+          "maxLength": 100
+        },
+        "courseTitle": {
+          "type": "string",
+          "description": "Título del curso",
+          "maxLength": 200
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Nombre del estudiante",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo del estudiante",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Teléfono",
+          "maxLength": 30
+        },
+        "parishName": {
+          "type": "string",
+          "description": "Parroquia o vicaria de pertenencia",
+          "maxLength": 150
+        },
+        "preferredModality": {
+          "type": "string",
+          "description": "Modalidad de asistencia",
+          "enum": ["presencial", "virtual"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Estado de la inscripción",
+          "enum": ["recibida", "confirmada", "en_curso", "completada"]
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID de Firebase Auth"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Fecha de inscripción"
+        }
+      },
+      "required": ["courseId", "courseTitle", "fullName", "email", "phone", "parishName", "preferredModality", "status", "userId"]
+    }
+  },
+  "firestore": {
+    "/test/{testId}": {
+      "schema": "TestConnection",
+      "description": "Validación de conexión del SDK de Firebase"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Catálogo de administradores canónicos y auditores"
+    },
+    "/certificateRequests/{requestId}": {
+      "schema": "CertificateRequest",
+      "description": "Solicitudes sacramentales de los fieles eclesiales"
+    },
+    "/contactMessages/{messageId}": {
+      "schema": "ContactMessage",
+      "description": "Buzón de correspondencia institucional de la red eclesial"
+    },
+    "/courseEnrollments/{enrollmentId}": {
+      "schema": "CourseEnrollment",
+      "description": "Inscripciones académicas y pastorales de formación"
+    }
+  }
+}
